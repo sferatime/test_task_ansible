@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+    reversed_proxy:
+        image: nginx
+        container_name: reversed_nginx
+        volumes: 
+            - ./nginx_conf:/etc/nginx/conf.d:rw
+        ports:
+            - "80:80"
+        links:
+            - grafana
+        restart: always
+    grafana:
+        image: grafana/grafana:latest
+        container_name: local_grafana
+        restart: always

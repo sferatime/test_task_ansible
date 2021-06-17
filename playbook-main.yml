@@ -1,0 +1,38 @@
+
+---
+- name: Ansible Test Playbook
+  hosts: all
+  become: yes
+
+  tasks:
+   - name: Install Docker
+     apt: name=docker.io state=latest
+   - name: Install Docker-compose
+     apt: name=docker-compose state=latest
+   - name: Create DevOps user
+     user: name=DevOps shell=/bin/bash ssh_key_bits=2048 ssh_key_file=./ssh/id_rsa
+   - name: Forbid Root to Login
+     lineinfile: dest=/etc/ssh/sshd_config regexp="^PermitRootLogin" line="PermitRootLogin no" state=present
+     notify:
+       - restart sshd
+   - name: Disable password login
+     lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+     notify:
+       - restart sshd
+   - name: Install firewalld
+     apt: name=firewalld state=latest
+   - name: Allow only 22,80 ports connections
+     firewalld: port="{{ item }}" permanent=true immediate=yes state=enabled
+     loop:
+      - 20/tcp
+      - 80/tcp
+   - name: Remove AppArmor for correct docker working
+     apt: name=apparmor state=absent
+   - name: Restart dockerd
+     service: name=docker state=restarted
+   - name: Launch docker-compose with nginx and grafana servers inside
+     docker_compose: project_src={{ playbook_dir }} files=docker-compose.yml state=present
+
+  handlers:
+   - name: restart sshd
+     service: name=sshd state=restarted
